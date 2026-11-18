@@ -1,14 +1,13 @@
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
-from database import Base, SessionLocal, engine
+from database import SessionLocal
 from models import TaskModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
 
 
 def get_db():
