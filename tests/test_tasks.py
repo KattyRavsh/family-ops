@@ -1,15 +1,47 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import main
+from database import Base
+
 
 
 @pytest.fixture
 def client():
-    main.tasks.clear()
-    main.next_task_id = 1
+    test_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(
+        bind=test_engine,
+        autoflush=False,
+        autocommit=False,
+    )
 
-    return TestClient(main.app)
+    Base.metadata.create_all(bind=test_engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    previous_overrides = main.app.dependency_overrides.copy()
+    main.app.dependency_overrides[main.get_db] = override_get_db
+
+    try:
+        with TestClient(main.app) as test_client:
+            yield test_client
+    finally:
+        main.app.dependency_overrides.clear()
+        main.app.dependency_overrides.update(previous_overrides)
+        Base.metadata.drop_all(bind=test_engine)
+        test_engine.dispose()
 
 
 def test_create_and_get_task(client):
