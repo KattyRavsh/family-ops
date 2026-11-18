@@ -5,6 +5,7 @@ from database import SessionLocal
 from models import TaskModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datetime import date
 
 
 app = FastAPI()
@@ -25,6 +26,7 @@ class TaskCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=100)
+    due_date: date | None = None
 
 
 class TaskRead(BaseModel):
@@ -33,6 +35,7 @@ class TaskRead(BaseModel):
     id: int
     title: str
     completed: bool
+    due_date: date | None
 
 
 @app.get("/health")
@@ -48,7 +51,10 @@ def get_tasks(db: Session = Depends(get_db)):
 
 @app.post("/tasks", response_model=TaskRead)
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    new_task = TaskModel(title=task.title)
+    new_task = TaskModel(
+        title=task.title,
+        due_date=task.due_date,
+    )
 
     db.add(new_task)
     db.commit()

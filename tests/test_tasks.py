@@ -8,7 +8,6 @@ import main
 from database import Base
 
 
-
 @pytest.fixture
 def client():
     test_engine = create_engine(
@@ -55,6 +54,7 @@ def test_create_and_get_task(client):
         "id": 1,
         "title": "Полить цветы",
         "completed": False,
+        "due_date": None,
     }
 
     list_response = client.get("/tasks")
@@ -65,6 +65,7 @@ def test_create_and_get_task(client):
             "id": 1,
             "title": "Полить цветы",
             "completed": False,
+            "due_date": None,
         }
     ]
 
@@ -127,6 +128,7 @@ def test_create_task_with_whitespace_only_title_returns_422(client):
 
     assert response.status_code == 422
 
+
 def test_create_task_with_surrounding_spaces_trims_title(client):
     response = client.post(
         "/tasks",
@@ -135,3 +137,16 @@ def test_create_task_with_surrounding_spaces_trims_title(client):
 
     assert response.status_code == 200
     assert response.json()["title"] == "Полить цветы"
+
+
+def test_create_task_with_due_date(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Полить цветы",
+            "due_date": "2026-12-01",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["due_date"] == "2026-12-01"
