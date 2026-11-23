@@ -55,6 +55,7 @@ def test_create_and_get_task(client):
         "title": "Полить цветы",
         "completed": False,
         "due_date": None,
+        "assigned_member_id": None,
     }
 
     list_response = client.get("/tasks")
@@ -66,6 +67,7 @@ def test_create_and_get_task(client):
             "title": "Полить цветы",
             "completed": False,
             "due_date": None,
+            "assigned_member_id": None
         }
     ]
 
@@ -150,3 +152,51 @@ def test_create_task_with_due_date(client):
 
     assert response.status_code == 200
     assert response.json()["due_date"] == "2026-12-01"
+
+
+def test_create_and_get_family_member(client):
+    create_response = client.post(
+        "/family-members",
+        json={"name": "Катя"},
+    )
+
+    assert create_response.status_code == 200
+    member = create_response.json()
+    assert member == {"id": 1, "name": "Катя"}
+
+    list_response = client.get("/family-members")
+
+    assert list_response.status_code == 200
+    assert list_response.json() == [{"id": 1, "name": "Катя"}]
+
+
+def test_create_task_assigned_to_family_member(client):
+    member_response = client.post(
+        "/family-members",
+        json={"name": "Катя"},
+    )
+    member_id = member_response.json()["id"]
+
+    task_response = client.post(
+        "/tasks",
+        json={
+            "title": "Полить цветы",
+            "assigned_member_id": member_id,
+        },
+    )
+
+    assert task_response.status_code == 200
+    assert task_response.json()["assigned_member_id"] == member_id
+
+
+def test_create_task_with_missing_member_returns_404(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "title": "Полить цветы",
+            "assigned_member_id": 999,
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Family member not found"}
