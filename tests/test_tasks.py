@@ -200,3 +200,39 @@ def test_create_task_with_missing_member_returns_404(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Family member not found"}
+
+
+def test_get_tasks_filtered_by_assigned_member(client):
+    first_member = client.post(
+        "/family-members",
+        json={"name": "Катя"},
+    ).json()
+
+    second_member = client.post(
+        "/family-members",
+        json={"name": "Саша"},
+    ).json()
+
+    first_task = client.post(
+        "/tasks",
+        json={
+            "title": "Полить цветы",
+            "assigned_member_id": first_member["id"],
+        },
+    ).json()
+
+    client.post(
+        "/tasks",
+        json={
+            "title": "Убрать кухню",
+            "assigned_member_id": second_member["id"],
+        },
+    )
+
+    response = client.get(
+        "/tasks",
+        params={"assigned_member_id": first_member["id"]},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [first_task]

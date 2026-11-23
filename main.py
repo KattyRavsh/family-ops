@@ -76,8 +76,17 @@ def get_family_members(db: Session = Depends(get_db)):
 
 
 @app.get("/tasks", response_model=list[TaskRead])
-def get_tasks(db: Session = Depends(get_db)):
+def get_tasks(
+    assigned_member_id: int | None = None,
+    db: Session = Depends(get_db),
+):
     statement = select(TaskModel).order_by(TaskModel.id)
+
+    if assigned_member_id is not None:
+        statement = statement.where(
+            TaskModel.assigned_member_id == assigned_member_id
+        )
+
     return db.scalars(statement).all()
 
 
