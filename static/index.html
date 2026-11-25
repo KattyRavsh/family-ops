@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family Ops</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #202b38;
+      background: #f4f6f8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+    }
+
+    header {
+      background: #263b50;
+      color: white;
+      padding: 22px max(20px, calc((100% - 1100px) / 2));
+    }
+
+    header h1 { margin: 0 0 4px; }
+    header p { margin: 0; color: #d5e0ea; }
+
+    main {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px 40px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(250px, 1fr) minmax(0, 2fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel, .task-card {
+      background: white;
+      border: 1px solid #e1e6eb;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px #1e34450b;
+    }
+
+    h2 { margin: 0 0 16px; font-size: 1.25rem; }
+    h3 { margin: 0 0 8px; }
+
+    label {
+      display: block;
+      margin: 12px 0 5px;
+      font-size: .92rem;
+      font-weight: 600;
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd4dd;
+      border-radius: 7px;
+      background: white;
+    }
+
+    textarea { min-height: 70px; resize: vertical; }
+
+    button {
+      border: 0;
+      border-radius: 7px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #2869a6;
+      color: white;
+      font-weight: 600;
+    }
+
+    button:hover { filter: brightness(.94); }
+    button:disabled { opacity: .55; cursor: wait; }
+
+    button.secondary {
+      color: #263b50;
+      background: #e8eef3;
+    }
+
+    button.success { background: #25815e; }
+    button.danger { background: #a83b3b; }
+
+    .tabs { display: flex; gap: 8px; margin: 0 0 18px; }
+    .tab-button { background: #e1e8ee; color: #263b50; }
+    .tab-button.active { background: #2869a6; color: white; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+    .summary-item { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: #f3f6f8; }
+    .summary-item span { color: #5c6b78; font-size: .9rem; }
+    .summary-item strong { font-size: 1.15rem; overflow-wrap: anywhere; }
+    .amount-income { color: #25815e; font-weight: 700; }
+    .amount-expense { color: #a83b3b; font-weight: 700; }
+    #budget-section[hidden] { display: none; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 12px;
+    }
+
+    .form-grid .wide { grid-column: 1 / -1; }
+
+    .member-list {
+      padding-left: 20px;
+      margin: 14px 0 0;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .task-card h3 { overflow-wrap: anywhere; }
+    .meta { color: #5c6b78; font-size: .9rem; line-height: 1.6; }
+    .badge {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 2px 9px;
+      margin-left: 5px;
+      background: #edf2f6;
+      font-size: .8rem;
+    }
+
+    details {
+      margin-top: 12px;
+      border-top: 1px solid #e7ebef;
+      padding-top: 10px;
+    }
+
+    summary { cursor: pointer; font-weight: 600; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .comment {
+      padding: 8px 0;
+      border-bottom: 1px solid #edf0f2;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .comment small { color: #687784; }
+
+    #notice {
+      margin: 0 0 16px;
+      padding: 10px 13px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #notice.error { display: block; background: #ffeded; color: #8c2525; }
+    #notice.ok { display: block; background: #e8f7ef; color: #1f6946; }
+    .empty { color: #667582; padding: 12px 0; }
+
+    @media (max-width: 720px) {
+      .layout { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .wide { grid-column: auto; }
+      main { margin-top: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Family Ops</h1>
+    <p>Семейные задачи — в одном месте</p>
+  </header>
+
+  <main>
+    <div id="notice" role="status"></div>
+
+    <nav class="tabs" aria-label="Разделы приложения">
+      <button type="button" class="tab-button active" data-section="tasks-section">Задачи</button>
+      <button type="button" class="tab-button" data-section="budget-section">Бюджет</button>
+    </nav>
+
+    <section id="tasks-section">
+    <div class="layout">
+      <section class="panel">
+        <h2>Семья</h2>
+        <form id="member-form">
+          <label for="member-name">Имя участника</label>
+          <input id="member-name" name="name" maxlength="100" required>
+          <div class="actions">
+            <button type="submit">Добавить участника</button>
+          </div>
+        </form>
+        <ul id="member-list" class="member-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Новая задача</h2>
+        <form id="task-form">
+          <div class="form-grid">
+            <div class="wide">
+              <label for="task-title">Что нужно сделать?</label>
+              <input id="task-title" name="title" maxlength="100" required>
+            </div>
+
+            <div>
+              <label for="task-due">Срок</label>
+              <input id="task-due" name="due_date" type="date">
+            </div>
+
+            <div>
+              <label for="task-category">Категория</label>
+              <input id="task-category" name="category" maxlength="50"
+                     placeholder="Например, Дом">
+            </div>
+
+            <div>
+              <label for="task-author">Кто создал</label>
+              <select id="task-author" name="created_by_member_id"></select>
+            </div>
+
+            <div>
+              <label for="task-assignee">Исполнитель</label>
+              <select id="task-assignee" name="assigned_member_id"></select>
+            </div>
+
+            <div>
+              <label for="task-priority">Приоритет</label>
+              <select id="task-priority" name="priority">
+                <option value="">Не указан</option>
+                <option value="low">Низкий</option>
+                <option value="normal">Обычный</option>
+                <option value="high">Высокий</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Создать задачу</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:18px">
+      <h2>Задачи</h2>
+      <div id="task-list" class="task-list"></div>
+    </section>
+    </section>
+
+    <section id="budget-section" hidden>
+      <div class="layout">
+        <section class="panel">
+          <h2>Новая операция</h2>
+          <form id="budget-form">
+            <label for="budget-type">Тип операции</label>
+            <select id="budget-type" name="entry_type" required>
+              <option value="expense">Расход</option>
+              <option value="income">Доход</option>
+            </select>
+
+            <label for="budget-amount">Сумма</label>
+            <input id="budget-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="Например, 1250.00">
+
+            <label for="budget-category">Категория</label>
+            <input id="budget-category" name="category" maxlength="50" required placeholder="Например, продукты">
+
+            <label for="budget-date">Дата</label>
+            <input id="budget-date" name="transaction_date" type="date" required>
+
+            <label for="budget-member">Участник семьи</label>
+            <select id="budget-member" name="member_id"></select>
+
+            <label for="budget-description">Комментарий</label>
+            <input id="budget-description" name="description" maxlength="500" placeholder="Необязательно">
+
+            <div class="actions">
+              <button type="submit">Добавить операцию</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Итоги бюджета</h2>
+          <div class="form-grid">
+            <div>
+              <label for="budget-from">С даты</label>
+              <input id="budget-from" type="date">
+            </div>
+            <div>
+              <label for="budget-to">По дату</label>
+              <input id="budget-to" type="date">
+            </div>
+          </div>
+          <div class="actions">
+            <button id="budget-filter" type="button">Показать за период</button>
+            <button id="budget-clear-filter" type="button" class="secondary">За всё время</button>
+          </div>
+          <div class="summary-grid" aria-live="polite">
+            <div class="summary-item"><span>Доходы</span><strong id="budget-income">—</strong></div>
+            <div class="summary-item"><span>Расходы</span><strong id="budget-expense">—</strong></div>
+            <div class="summary-item"><span>Баланс</span><strong id="budget-balance">—</strong></div>
+          </div>
+          <p class="meta">Итоги и список операций учитывают выбранный период.</p>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top:18px">
+        <h2>Операции</h2>
+        <div id="budget-list" class="task-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const notice = document.querySelector("#notice");
+    let members = [];
+    let tasks = [];
+    let budgetEntries = [];
+    let budgetLoaded = false;
+
+    function showNotice(message, isError = false) {
+      notice.textContent = message;
+      notice.className = isError ? "error" : "ok";
+      window.setTimeout(() => {
+        notice.className = "";
+        notice.textContent = "";
+      }, 4500);
+    }
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+      });
+
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const detail = body?.detail;
+        throw new Error(typeof detail === "string"
+          ? detail
+          : `Ошибка запроса: ${response.status}`);
+      }
+
+      return body;
+    }
+
+    function addMemberOptions(select, selected = "") {
+      select.replaceChildren();
+
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "Не выбран";
+      select.append(emptyOption);
+
+      for (const member of members) {
+        const option = document.createElement("option");
+        option.value = member.id;
+        option.textContent = member.name;
+        if (String(member.id) === String(selected)) option.selected = true;
+        select.append(option);
+      }
+    }
+
+    function memberName(id) {
+      if (id == null) return "не назначен";
+      return members.find(member => member.id === id)?.name ?? "участник удалён";
+    }
+
+    function make(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text != null) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+
+    async function loadMembers() {
+      members = await api("/family-members");
+
+      const list = document.querySelector("#member-list");
+      list.replaceChildren();
+
+      if (!members.length) {
+        list.append(make("li", "Участников пока нет", "empty"));
+      } else {
+        for (const member of members) {
+          list.append(make("li", member.name));
+        }
+      }
+
+      addMemberOptions(document.querySelector("#task-author"));
+      addMemberOptions(document.querySelector("#task-assignee"));
+      addMemberOptions(document.querySelector("#budget-member"));
+    }
+
+    function renderTasks() {
+      const list = document.querySelector("#task-list");
+      list.replaceChildren();
+
+      if (!tasks.length) {
+        list.append(make("p", "Задач пока нет. Создай первую выше.", "empty"));
+        return;
+      }
+
+      for (const task of tasks) {
+        const card = make("article", null, "task-card");
+        const titleRow = make("div");
+        const title = make("h3", task.title);
+        titleRow.append(title);
+
+        const status = task.completed ? "Выполнена" : "Открыта";
+        const badge = make("span", status, "badge");
+        titleRow.append(badge);
+        titleRow.append(make("span", `ID ${task.id}`, "badge"));
+        card.append(titleRow);
+
+        const meta = make("div", null, "meta");
+        meta.textContent =
+          `Срок: ${task.due_date ?? "не указан"} · ` +
+          `Исполнитель: ${memberName(task.assigned_member_id)} · ` +
+          `Автор: ${memberName(task.created_by_member_id)}`;
+        card.append(meta);
+
+        const extra = make("div", null, "meta");
+        extra.textContent =
+          `Категория: ${task.category || "—"} · ` +
+          `Приоритет: ${task.priority || "—"}`;
+        card.append(extra);
+
+        const actions = make("div", null, "actions");
+
+        if (!task.completed) {
+          const completeButton = make("button", "Завершить", "success");
+          completeButton.type = "button";
+          completeButton.addEventListener("click", async () => {
+            try {
+              await api(`/tasks/${task.id}/complete`, { method: "PATCH" });
+              await loadTasks();
+              showNotice("Задача завершена");
+            } catch (error) {
+              showNotice(error.message, true);
+            }
+          });
+          actions.append(completeButton);
+        }
+
+        const deleteButton = make("button", "Удалить", "danger");
+        deleteButton.type = "button";
+        deleteButton.addEventListener("click", async () => {
+          if (!window.confirm(`Удалить задачу «${task.title}» (ID ${task.id})?`)) return;
+          deleteButton.disabled = true;
+          try {
+            await api(`/tasks/${task.id}`, { method: "DELETE" });
+            showNotice(`Задача ID ${task.id} удалена`);
+            try {
+              await loadTasks();
+            } catch (error) {
+              showNotice(`Задача удалена, но список не обновился: ${error.message}`, true);
+            }
+          } catch (error) {
+            deleteButton.disabled = false;
+            showNotice(error.message, true);
+          }
+        });
+        actions.append(deleteButton);
+
+        card.append(actions);
+
+        const editDetails = make("details");
+        const editSummary = make("summary", "Редактировать задачу");
+        editDetails.append(editSummary);
+
+        const editForm = make("form");
+        const editGrid = make("div", null, "form-grid");
+
+        const titleInput = document.createElement("input");
+        titleInput.name = "title";
+        titleInput.value = task.title;
+        titleInput.maxLength = 100;
+        titleInput.required = true;
+
+        const dueInput = document.createElement("input");
+        dueInput.name = "due_date";
+        dueInput.type = "date";
+        dueInput.value = task.due_date || "";
+
+        const categoryInput = document.createElement("input");
+        categoryInput.name = "category";
+        categoryInput.maxLength = 50;
+        categoryInput.value = task.category || "";
+
+        const assigneeSelect = document.createElement("select");
+        addMemberOptions(assigneeSelect, task.assigned_member_id);
+        assigneeSelect.name = "assigned_member_id";
+
+        const prioritySelect = document.createElement("select");
+        prioritySelect.name = "priority";
+        for (const [value, label] of [
+          ["", "Не указан"],
+          ["low", "Низкий"],
+          ["normal", "Обычный"],
+          ["high", "Высокий"],
+        ]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          option.selected = (task.priority || "") === value;
+          prioritySelect.append(option);
+        }
+
+        function addField(labelText, input, wide = false) {
+          const wrapper = make("div", null, wide ? "wide" : "");
+          wrapper.append(make("label", labelText), input);
+          editGrid.append(wrapper);
+        }
+
+        addField("Название", titleInput, true);
+        addField("Срок", dueInput);
+        addField("Категория", categoryInput);
+        addField("Исполнитель", assigneeSelect);
+        addField("Приоритет", prioritySelect);
+
+        const saveButton = make("button", "Сохранить изменения");
+        saveButton.type = "submit";
+        editForm.append(editGrid, saveButton);
+
+        editForm.addEventListener("submit", async event => {
+          event.preventDefault();
+          const form = new FormData(editForm);
+
+          const payload = {
+            title: form.get("title"),
+            due_date: form.get("due_date") || null,
+            category: form.get("category") || null,
+            assigned_member_id: form.get("assigned_member_id")
+              ? Number(form.get("assigned_member_id"))
+              : null,
+            priority: form.get("priority") || null,
+          };
+
+          try {
+            await api(`/tasks/${task.id}`, {
+              method: "PATCH",
+              body: JSON.stringify(payload),
+            });
+            await loadTasks();
+            showNotice("Изменения сохранены");
+          } catch (error) {
+            showNotice(error.message, true);
+          }
+        });
+
+        editDetails.append(editForm);
+        card.append(editDetails);
+
+        const commentsDetails = make("details");
+        commentsDetails.append(make("summary", "Комментарии"));
+
+        const commentsBox = make("div");
+        commentsDetails.addEventListener("toggle", async () => {
+          if (!commentsDetails.open || commentsBox.dataset.loaded) return;
+
+          try {
+            const comments = await api(`/tasks/${task.id}/comments`);
+            commentsBox.replaceChildren();
+
+            if (!comments.length) {
+              commentsBox.append(make("p", "Комментариев пока нет", "empty"));
+            }
+
+            for (const comment of comments) {
+              const item = make("div", null, "comment");
+              item.append(make("div", comment.body));
+              item.append(make(
+                "small",
+                `${memberName(comment.author_member_id)} · ${comment.created_at}`
+              ));
+              commentsBox.append(item);
+            }
+            commentsBox.dataset.loaded = "true";
+          } catch (error) {
+            commentsBox.append(make("p", error.message, "empty"));
+          }
+        });
+
+        const commentForm = make("form");
+        const commentInput = document.createElement("textarea");
+        commentInput.name = "body";
+        commentInput.maxLength = 2000;
+        commentInput.required = true;
+        commentInput.placeholder = "Напиши комментарий…";
+
+        const authorSelect = document.createElement("select");
+        addMemberOptions(authorSelect);
+        authorSelect.name = "author_member_id";
+
+        const commentButton = make("button", "Добавить комментарий");
+        commentButton.type = "submit";
+
+        commentForm.append(
+          make("label", "Комментарий"),
+          commentInput,
+          make("label", "Автор комментария"),
+          authorSelect,
+          make("div", null, "actions")
+        );
+        commentForm.lastChild.append(commentButton);
+
+        commentForm.addEventListener("submit", async event => {
+          event.preventDefault();
+          const body = commentInput.value.trim();
+          const authorId = authorSelect.value;
+
+          try {
+            await api(`/tasks/${task.id}/comments`, {
+              method: "POST",
+              body: JSON.stringify({
+                body,
+                author_member_id: authorId ? Number(authorId) : null,
+              }),
+            });
+            commentInput.value = "";
+            commentsBox.dataset.loaded = "";
+            commentsDetails.open = true;
+            commentsDetails.dispatchEvent(new Event("toggle"));
+            showNotice("Комментарий добавлен");
+          } catch (error) {
+            showNotice(error.message, true);
+          }
+        });
+
+        commentsDetails.append(commentsBox, commentForm);
+        card.append(commentsDetails);
+        list.append(card);
+      }
+    }
+
+    async function loadTasks() {
+      tasks = await api("/tasks");
+      renderTasks();
+    }
+
+    function localDateInputValue() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 10);
+    }
+
+    function formatMoney(value) {
+      const number = Number(value);
+      return new Intl.NumberFormat("ru-RU", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number.isFinite(number) ? number : 0) + " ₽";
+    }
+
+    function budgetQuery() {
+      const params = new URLSearchParams();
+      const dateFrom = document.querySelector("#budget-from").value;
+      const dateTo = document.querySelector("#budget-to").value;
+      if (dateFrom) params.set("date_from", dateFrom);
+      if (dateTo) params.set("date_to", dateTo);
+      return params.toString();
+    }
+
+    function renderBudgetEntries() {
+      const list = document.querySelector("#budget-list");
+      list.replaceChildren();
+
+      if (!budgetEntries.length) {
+        list.append(make("p", "Операций за выбранный период пока нет.", "empty"));
+        return;
+      }
+
+      for (const entry of budgetEntries) {
+        const card = make("article", null, "task-card");
+        const titleRow = make("div");
+        const kind = entry.entry_type === "income" ? "Доход" : "Расход";
+        titleRow.append(make("h3", `${entry.category} · ${kind}`));
+        titleRow.append(make("span", `ID ${entry.id}`, "badge"));
+        card.append(titleRow);
+
+        const amountClass = entry.entry_type === "income" ? "amount-income" : "amount-expense";
+        card.append(make("div", formatMoney(entry.amount), amountClass));
+        card.append(make("div", `Дата: ${entry.transaction_date} · Участник: ${memberName(entry.member_id)}`, "meta"));
+        if (entry.description) card.append(make("div", entry.description, "meta"));
+
+        const actions = make("div", null, "actions");
+        const deleteButton = make("button", "Удалить операцию", "danger");
+        deleteButton.type = "button";
+        deleteButton.addEventListener("click", async () => {
+          const prompt = `Удалить ${kind.toLowerCase()} «${entry.category}» на ${formatMoney(entry.amount)} (ID ${entry.id})?`;
+          if (!window.confirm(prompt)) return;
+
+          deleteButton.disabled = true;
+          try {
+            await api(`/budget-entries/${entry.id}`, { method: "DELETE" });
+            showNotice(`${kind} удалён(а)`);
+            try {
+              await loadBudget();
+            } catch (error) {
+              showNotice(`Операция удалена, но сводка не обновилась: ${error.message}`, true);
+            }
+          } catch (error) {
+            deleteButton.disabled = false;
+            showNotice(error.message, true);
+          }
+        });
+        actions.append(deleteButton);
+        card.append(actions);
+        list.append(card);
+      }
+    }
+
+    async function loadBudget() {
+      const query = budgetQuery();
+      const suffix = query ? `?${query}` : "";
+      const [summary, entries] = await Promise.all([
+        api(`/budget-summary${suffix}`),
+        api(`/budget-entries${suffix}`),
+      ]);
+      budgetEntries = entries;
+      document.querySelector("#budget-income").textContent = formatMoney(summary.income_total);
+      document.querySelector("#budget-expense").textContent = formatMoney(summary.expense_total);
+      document.querySelector("#budget-balance").textContent = formatMoney(summary.balance);
+      renderBudgetEntries();
+      budgetLoaded = true;
+    }
+
+    document.querySelectorAll(".tab-button").forEach(button => {
+      button.addEventListener("click", async () => {
+        document.querySelectorAll(".tab-button").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        const targetId = button.dataset.section;
+        document.querySelector("#tasks-section").hidden = targetId !== "tasks-section";
+        document.querySelector("#budget-section").hidden = targetId !== "budget-section";
+
+        if (targetId === "budget-section" && !budgetLoaded) {
+          try {
+            await loadBudget();
+          } catch (error) {
+            showNotice(`Не удалось загрузить бюджет: ${error.message}`, true);
+          }
+        }
+      });
+    });
+
+    document.querySelector("#budget-filter").addEventListener("click", async () => {
+      const from = document.querySelector("#budget-from").value;
+      const to = document.querySelector("#budget-to").value;
+      if (from && to && from > to) {
+        showNotice("Начало периода не может быть позже его окончания", true);
+        return;
+      }
+      try {
+        await loadBudget();
+      } catch (error) {
+        showNotice(`Не удалось загрузить бюджет: ${error.message}`, true);
+      }
+    });
+
+    document.querySelector("#budget-clear-filter").addEventListener("click", async () => {
+      document.querySelector("#budget-from").value = "";
+      document.querySelector("#budget-to").value = "";
+      try {
+        await loadBudget();
+      } catch (error) {
+        showNotice(`Не удалось загрузить бюджет: ${error.message}`, true);
+      }
+    });
+
+    document.querySelector("#budget-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const formElement = event.currentTarget;
+      const submitButton = formElement.querySelector('button[type="submit"]');
+      const form = new FormData(formElement);
+      const payload = {
+        entry_type: form.get("entry_type"),
+        amount: form.get("amount"),
+        category: String(form.get("category") || "").trim(),
+        description: String(form.get("description") || "").trim() || null,
+        transaction_date: form.get("transaction_date"),
+        member_id: form.get("member_id") ? Number(form.get("member_id")) : null,
+      };
+
+      submitButton.disabled = true;
+      try {
+        await api("/budget-entries", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        formElement.reset();
+        document.querySelector("#budget-date").value = localDateInputValue();
+        showNotice("Операция добавлена");
+        try {
+          await loadBudget();
+        } catch (error) {
+          showNotice(`Операция добавлена, но данные не обновились: ${error.message}`, true);
+        }
+      } catch (error) {
+        showNotice(error.message, true);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    document.querySelector("#member-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const input = document.querySelector("#member-name");
+
+      try {
+        await api("/family-members", {
+          method: "POST",
+          body: JSON.stringify({ name: input.value.trim() }),
+        });
+        input.value = "";
+        await loadMembers();
+        showNotice("Участник добавлен");
+      } catch (error) {
+        showNotice(error.message, true);
+      }
+    });
+
+    document.querySelector("#task-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const taskForm = event.currentTarget;
+      const submitButton = taskForm.querySelector('button[type="submit"]');
+      const form = new FormData(taskForm);
+
+      const payload = {
+        title: form.get("title"),
+        due_date: form.get("due_date") || null,
+        category: form.get("category") || null,
+        priority: form.get("priority") || null,
+        created_by_member_id: form.get("created_by_member_id")
+          ? Number(form.get("created_by_member_id"))
+          : null,
+        assigned_member_id: form.get("assigned_member_id")
+          ? Number(form.get("assigned_member_id"))
+          : null,
+      };
+
+      submitButton.disabled = true;
+      try {
+        await api("/tasks", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        // Сохраняем ссылку до await: event.currentTarget после него уже null.
+        taskForm.reset();
+        showNotice("Задача создана");
+        try {
+          await loadTasks();
+        } catch (error) {
+          showNotice(`Задача создана, но список не обновился: ${error.message}`, true);
+        }
+      } catch (error) {
+        showNotice(error.message, true);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    async function init() {
+      document.querySelector("#budget-date").value = localDateInputValue();
+      try {
+        await loadMembers();
+        await loadTasks();
+      } catch (error) {
+        showNotice(`Не удалось загрузить данные: ${error.message}`, true);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
