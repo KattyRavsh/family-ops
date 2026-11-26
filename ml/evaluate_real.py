@@ -12,9 +12,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, average_precision_score
 
 DEFAULT_INPUT = Path(__file__).resolve().parents[1] / "data" / "task_lateness.csv"
-FEATURES = ["days_until_due", "created_weekday", "due_weekday", "has_assignee"]
+FEATURES = ["days_until_due", "created_weekday", "due_weekday"]
 NUMERIC = ["days_until_due"]
-CATEGORICAL = ["created_weekday", "due_weekday", "has_assignee"]
+CATEGORICAL = ["created_weekday", "due_weekday"]
 MIN_ROWS = 50
 MIN_PER_CLASS = 10
 

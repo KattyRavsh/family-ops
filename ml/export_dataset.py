@@ -16,7 +16,6 @@ FIELDNAMES = [
     "days_until_due",
     "created_weekday",
     "due_weekday",
-    "has_assignee",
     "label_late",
 ]
 
@@ -58,7 +57,6 @@ def main() -> None:
                     "days_until_due": (task.due_date - task.created_at.date()).days,
                     "created_weekday": task.created_at.weekday(),
                     "due_weekday": task.due_date.weekday(),
-                    "has_assignee": int(task.assigned_member_id is not None),
                     "label_late": label,
                 }
             )

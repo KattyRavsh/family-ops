@@ -16,7 +16,6 @@ def make_dataset(n=100):
             "days_until_due": 3 + i % 5,
             "created_weekday": i % 7,
             "due_weekday": (i + 3) % 7,
-            "has_assignee": i % 2,
             "label_late": (i // 2) % 2,
         })
     return pd.DataFrame(rows)
@@ -28,6 +27,7 @@ def test_real_evaluator_uses_chronological_split_and_baseline():
     assert result["split"].startswith("chronological")
     assert result["test_rows"] == 20
     assert set(result["results"]) == {"majority_baseline", "logistic_regression"}
+    assert "has_assignee" not in result["features"]
 
 
 def test_real_evaluator_refuses_too_few_rows():

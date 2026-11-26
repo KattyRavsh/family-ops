@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 DEFAULT_INPUT = Path(__file__).resolve().parents[1] / "data" / "task_lateness.csv"
-REQUIRED = ["created_at", "days_until_due", "created_weekday", "due_weekday", "has_assignee", "label_late"]
+REQUIRED = ["created_at", "days_until_due", "created_weekday", "due_weekday", "label_late"]
 
 
 def audit(path: Path) -> dict:
@@ -18,7 +18,7 @@ def audit(path: Path) -> dict:
     if df.empty:
         return {"rows": 0, "status": "no_labeled_examples", "message": "Экспорт пока пуст."}
 
-    numeric = ["days_until_due", "created_weekday", "due_weekday", "has_assignee", "label_late"]
+    numeric = ["days_until_due", "created_weekday", "due_weekday", "label_late"]
     for col in numeric:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     invalid = int(df[numeric].isna().any(axis=1).sum())
