@@ -83,6 +83,21 @@ python -m ml.predict_task --days-until-due 3 --created-weekday 0 --has-assignee 
 
 The synthetic data is generated from hand-written rules. Metrics from it demonstrate that the pipeline runs; they do **not** estimate performance on real family tasks.
 
+### Reproducible demo results
+
+With `--rows 2000 --seed 42`, the synthetic experiment produced:
+
+| Model | Accuracy | Macro-F1 | ROC-AUC |
+|---|---:|---:|---:|
+| Majority baseline | 0.756 | 0.431 | 0.500 |
+| Logistic regression | 0.752 | 0.445 | 0.632 |
+
+These results verify that the experiment runs end to end; they do not demonstrate
+useful predictive performance. In particular, the model has very low recall for
+late tasks on this generated dataset. The synthetic generator is a pipeline
+demonstration, not a substitute for evaluation on representative real data.
+
+
 ### Evaluation on application history
 
 The real-data workflow exports labeled tasks from the local SQLite database, checks the resulting dataset, and evaluates a baseline and logistic regression using a chronological split:
