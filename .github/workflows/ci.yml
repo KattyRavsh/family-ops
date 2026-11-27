@@ -30,3 +30,9 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Smoke-test synthetic ML pipeline
+        run: |
+          python -m ml.generate_synthetic --rows 2000 --seed 42
+          python -m ml.train_baseline
+          python -m ml.predict_task --days-until-due 3 --created-weekday 0 --has-assignee 1
